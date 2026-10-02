@@ -42,3 +42,15 @@ __screenshots__/
 # System files
 .DS_Store
 Thumbs.db
+
+# Python (backend)
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Secretos y bases de datos locales (nunca se suben)
+.env
+*.db
+*.sqlite3
