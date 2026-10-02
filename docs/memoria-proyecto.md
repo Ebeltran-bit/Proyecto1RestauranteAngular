@@ -51,6 +51,7 @@ Cada entrada indica la fecha, la fase, qué se decidió o cambió y por qué.
   - `/categories/999/products` → 404 con mensaje
   - `/categories/abc/products` → 422
   - `/docs` → 200 y `/openapi.json` incluye los cuatro endpoints
-- Pendiente de comprobar en el PC de David: la interfaz visual de `/docs` (Swagger UI) carga sus
-  archivos desde un CDN que el entorno de pruebas tiene bloqueado, así que no se pudo pulsar
-  "Try it out" en un navegador. Las peticiones que hace ese botón son las mismas verificadas arriba.
+- `/docs` (Swagger UI) comprobado por David en su PC el 2026-10-02: carga correctamente y
+  muestra los cuatro endpoints agrupados en health, categories y tables, y los esquemas
+  `Category`, `Product` y `Table`. En el entorno de pruebas de Claude no se pudo ver porque
+  bloquea el CDN del que Swagger UI carga sus archivos.
