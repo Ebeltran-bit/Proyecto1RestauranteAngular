@@ -37,8 +37,10 @@ La carpeta `.venv` no se sube al repositorio: cada persona crea la suya con los 
 uvicorn app.main:app --reload
 ```
 
-La API queda en `http://127.0.0.1:8000` y la documentación interactiva en
-`http://127.0.0.1:8000/docs`, desde donde se pueden ejecutar todas las consultas.
+- Interfaz para el personal de sala: `http://127.0.0.1:8000/`
+  (elegir mesa, ver sus pedidos, añadir y modificar).
+- Documentación interactiva de la API: `http://127.0.0.1:8000/docs`, desde donde se pueden
+  ejecutar todas las consultas.
 
 ### Pruebas
 
@@ -55,6 +57,7 @@ backend/
     routers/           # endpoints agrupados por recurso
       dependencies.py  # búsquedas comunes que responden 404 si el recurso no existe
     schemas/           # modelos Pydantic de entrada y salida
+    static/            # interfaz visual (HTML, CSS y JavaScript sin dependencias)
     data/
       sample_data.py   # carta, mesas y pedidos de ejemplo en memoria
       order_store.py   # almacén de pedidos en memoria (hasta la Fase 3)

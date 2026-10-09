@@ -105,3 +105,32 @@ Cada entrada indica la fecha, la fase, qué se decidió o cambió y por qué.
   ver categorías, productos de Entrantes, detalle y presentaciones de Croquetas, crear un pedido
   (201), verlo en el listado y modificar su cantidad (200). Errores comprobados: presentación no
   activa (422 con mensaje), cantidad como texto (422), pedido de otra mesa (404) y `PATCH` vacío (422).
+
+### Interfaz visual (2026-10-09)
+
+David pidió una pequeña interfaz visual para que la API sea más intuitiva de usar.
+
+| # | Decisión | Motivo |
+|---|----------|--------|
+| 1 | Página HTML, CSS y JavaScript sin librerías, servida por la propia API en `/` | Elegida por David frente a hacerla ya en Angular: no instala nada y se usa en cuanto arranca el servidor. Se sustituirá por el cliente Angular |
+| 2 | Archivos en `backend/app/static/`, servidos con `StaticFiles` de FastAPI | Mismo origen que la API: no hace falta configurar CORS |
+| 3 | La ruta `/` no aparece en `/docs` | No forma parte de la API |
+| 4 | La interfaz solo llama a los endpoints públicos de la API | Así comprueba la API tal y como la usará Angular, y no duplica reglas de negocio |
+| 5 | Si un producto tiene una sola presentación, se selecciona sola | Ahorra un toque al camarero en bebidas y postres |
+| 6 | Los errores de la API se muestran tal cual en un aviso | Los mensajes de la API ya están en español y son claros |
+| 7 | Diseño adaptado a móvil y con modo oscuro automático | Los camareros suelen usar el móvil o una tablet |
+
+Cambios:
+- Nuevos `backend/app/static/index.html`, `styles.css` y `app.js` con cuatro pantallas: mesas,
+  pedidos de la mesa, nuevo pedido (categoría, producto, presentación y cantidad) y modificar pedido.
+- `main.py`: sirve la interfaz en `/` y los archivos en `/static`.
+- Nuevas pruebas `tests/test_interface.py` (3). Total: 44.
+- README: dirección de la interfaz y carpeta `static/` en la estructura.
+
+Verificación (Python 3.9.23 y Chromium):
+- `python -m pytest -W error`: 44 de 44 pasan.
+- Recorrido completo en el navegador: elegir Mesa 1, ver sus 2 pedidos, añadir 2 medias raciones
+  de croquetas (aparece en la lista), modificarlo a 4 raciones (se actualiza), aviso al intentar
+  añadir sin presentación, cantidad 150 bloqueada por el formulario, mesa sin pedidos (Barra) con
+  su aviso, selección automática de la única presentación del agua. Sin errores en la consola.
+- Revisado en móvil (400 px) y escritorio (1280 px), en modo claro y oscuro.
