@@ -1,4 +1,9 @@
+from typing import List
+
 from pydantic import BaseModel
+
+from app.schemas.category import Category
+from app.schemas.presentation import Presentation
 
 
 class Product(BaseModel):
@@ -7,3 +12,10 @@ class Product(BaseModel):
     id: int
     name: str
     category_id: int
+
+
+class ProductDetail(Product):
+    """Product with its category and the presentations it can currently be ordered in."""
+
+    category: Category
+    presentations: List[Presentation]
