@@ -53,32 +53,64 @@ backend/
   app/
     main.py            # crea la aplicación y registra los routers
     routers/           # endpoints agrupados por recurso
-    schemas/           # modelos Pydantic de respuesta
-    data/              # datos de ejemplo en memoria (Fase 1)
+      dependencies.py  # búsquedas comunes que responden 404 si el recurso no existe
+    schemas/           # modelos Pydantic de entrada y salida
+    data/
+      sample_data.py   # carta, mesas y pedidos de ejemplo en memoria
+      order_store.py   # almacén de pedidos en memoria (hasta la Fase 3)
   tests/               # pruebas automáticas de los endpoints
   requirements.txt
 ```
 
-### Endpoints (Fase 1)
+### Endpoints
 
-| Método | Ruta                            | Descripción                                   |
-|--------|---------------------------------|-----------------------------------------------|
-| GET    | `/health`                       | Confirma que la API funciona                  |
-| GET    | `/categories`                   | Lista las categorías de la carta              |
-| GET    | `/tables`                       | Lista las mesas del restaurante               |
-| GET    | `/categories/{id}/products`     | Lista los productos de una categoría          |
+El orden sigue el recorrido del camarero: elegir mesa, ver sus pedidos y añadir o modificar.
 
-Errores controlados: una categoría inexistente devuelve `404` con un mensaje
-(`{"detail": "No existe la categoría con id 999"}`) y un id no numérico devuelve `422`.
+| Método | Ruta                                       | Descripción                                          |
+|--------|--------------------------------------------|------------------------------------------------------|
+| GET    | `/health`                                  | Confirma que la API funciona                         |
+| GET    | `/tables`                                  | Lista las mesas del restaurante                      |
+| GET    | `/tables/{table_id}`                       | Selecciona una mesa                                  |
+| GET    | `/tables/{table_id}/orders`                | Lista los pedidos de la mesa                         |
+| POST   | `/tables/{table_id}/orders`                | Añade un pedido a la mesa                            |
+| GET    | `/tables/{table_id}/orders/{order_id}`     | Consulta un pedido de la mesa                        |
+| PATCH  | `/tables/{table_id}/orders/{order_id}`     | Modifica la presentación o la cantidad de un pedido  |
+| GET    | `/categories`                              | Lista las categorías de la carta                     |
+| GET    | `/categories/{category_id}/products`       | Lista los productos de una categoría                 |
+| GET    | `/products/{product_id}`                   | Detalle de un producto con su categoría y presentaciones |
+| GET    | `/products/{product_id}/presentations`     | Solo las presentaciones activas del producto         |
+
+Cuerpo JSON para crear un pedido (`POST`):
+
+```json
+{"product_id": 5, "presentation_id": 3, "quantity": 2}
+```
+
+Cuerpo JSON para modificarlo (`PATCH`), con uno o los dos campos:
+
+```json
+{"presentation_id": 4, "quantity": 3}
+```
+
+Respuestas de error controladas:
+
+- `404`: la mesa, la categoría, el producto o el pedido de la URL no existen, o el pedido
+  es de otra mesa. Ejemplo: `{"detail": "No existe la mesa con id 999"}`.
+- `422`: el JSON no es válido (falta un campo, tipo incorrecto como `"2"` en vez de `2`,
+  cantidad fuera de 1 a 99, campos desconocidos) o hace referencia a un producto o presentación
+  que no existe o no está activa. Ejemplo: `{"detail": "Agua mineral no está disponible en Ración"}`.
 
 ### Datos de prueba
 
-En la Fase 1 los datos están en memoria, en `backend/app/data/sample_data.py`:
+Los datos están en memoria, en `backend/app/data/sample_data.py`. Los pedidos que se crean o
+modifican se pierden al reiniciar el servidor (la base de datos llega en la Fase 3).
 
 - Categorías: 1 Bebidas, 2 Entrantes, 3 Carnes, 4 Pescados, 5 Postres.
 - Mesas: 1 Mesa 1, 2 Mesa 2, 3 Mesa 3, 4 Terraza 1, 5 Barra.
-- Productos: entre 2 y 3 por categoría (por ejemplo, `GET /categories/2/products`
-  devuelve Patatas bravas, Croquetas caseras y Ensaladilla rusa).
+- Presentaciones: 1 Unidad, 2 Tapa, 3 Media ración, 4 Ración.
+- Productos: entre 2 y 3 por categoría, cada uno con sus presentaciones activas
+  (por ejemplo, las bebidas solo se sirven por unidad).
+- Pedidos iniciales: la Mesa 1 tiene 2 pedidos, la Mesa 2 tiene 1 y el resto ninguno.
 
 ## Frontend (Angular)
 

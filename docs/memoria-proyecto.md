@@ -55,3 +55,53 @@ Cada entrada indica la fecha, la fase, qué se decidió o cambió y por qué.
   muestra los cuatro endpoints agrupados en health, categories y tables, y los esquemas
   `Category`, `Product` y `Table`. En el entorno de pruebas de Claude no se pudo ver porque
   bloquea el CDN del que Swagger UI carga sus archivos.
+
+## Fase 2: Navegación de carta y selección de pedido
+
+### Requisitos (2026-10-09)
+
+- Enunciado: completar la lectura de la carta en el orden del camarero (mesa, categoría,
+  producto y presentación), con modelos de entrada y salida para que la API valide los JSON.
+  Rutas mínimas: `GET /tables`, `GET /categories`, `GET /categories/{category_id}/products`,
+  `GET /products/{product_id}/presentations` (solo presentaciones activas) y `GET /products/{id}`.
+- Petición de David: para modificar, el camarero selecciona la mesa, ve el listado de sus
+  pedidos y luego modifica (o no). Para crear, selecciona la mesa y añade o modifica el pedido.
+  Trabajar en una rama nueva.
+
+### Decisiones (2026-10-09)
+
+| # | Decisión | Motivo |
+|---|----------|--------|
+| 1 | Rama `fase2`, creada desde `davidbranch` | David pidió una rama nueva para la Fase 2 |
+| 2 | Los pedidos (listar, crear, consultar y modificar) se hacen ya en esta fase, en memoria | Lo pide el flujo de David. El enunciado deja la persistencia en MySQL para la Fase 3; entonces solo cambiará el almacén |
+| 3 | Las rutas de pedidos cuelgan de la mesa: `/tables/{table_id}/orders` | Reproduce el flujo: primero se selecciona la mesa y todo lo demás ocurre dentro de ella |
+| 4 | Modificar es `PATCH` con solo los campos que cambian (`presentation_id`, `quantity`) | El camarero suele cambiar una sola cosa. El producto y la mesa de un pedido no se cambian: si el producto es otro, es otro pedido |
+| 5 | Sin borrado de pedidos todavía | No se pidió; el enunciado lo sitúa en la Fase 3 |
+| 6 | JSON estricto: tipos exactos, campos desconocidos rechazados, cantidad de 1 a 99 | El enunciado pide que la API valide los JSON; el límite de 99 detecta errores de tecleo |
+| 7 | `404` para lo que viene en la URL; `422` para lo que viene en el JSON | Distingue "esa mesa o pedido no existe" de "los datos enviados no son válidos" |
+| 8 | Un pedido de otra mesa responde `404` | Evita modificar por error el pedido de otra mesa |
+| 9 | Búsquedas comunes como dependencias de FastAPI (`routers/dependencies.py`) | Un único sitio para los 404, sin repetir código en cada endpoint |
+| 10 | Almacén de pedidos en memoria con un candado (`data/order_store.py`) | FastAPI atiende peticiones en varios hilos; el candado evita ids repetidos |
+| 11 | Presentaciones activas por producto en `PRODUCT_PRESENTATION_IDS` | Imita las columnas de disponibilidad de la tabla `Carta` |
+| 12 | Tres pedidos de ejemplo al arrancar (Mesa 1 y Mesa 2) | Para que el listado de pedidos muestre algo nada más arrancar |
+
+### Cambios (2026-10-09)
+
+- Nuevos endpoints: `GET /tables/{table_id}`, `GET` y `POST /tables/{table_id}/orders`,
+  `GET` y `PATCH /tables/{table_id}/orders/{order_id}`, `GET /products/{product_id}` y
+  `GET /products/{product_id}/presentations`.
+- Nuevos modelos: `Presentation`, `ProductDetail`, `Order`, `OrderCreate` y `OrderUpdate`.
+- Datos de ejemplo: 4 presentaciones, presentaciones activas de cada producto y 3 pedidos.
+- `GET /categories/{category_id}/products` usa ahora la dependencia común; su respuesta no cambia.
+- Versión de la API: 0.2.0.
+- Pruebas: de 7 a 41 (`test_tables.py`, `test_products.py`, `test_orders.py` y `conftest.py`,
+  que reinicia los pedidos antes de cada prueba).
+- README: estructura, endpoints, cuerpos JSON, errores y datos de prueba actualizados.
+
+### Verificación (2026-10-09, Python 3.9.23)
+
+- `python -m pytest -W error`: 41 de 41 pruebas pasan, sin avisos.
+- Servidor real, recorrido del camarero: listar mesas, seleccionar la Mesa 1, ver sus 2 pedidos,
+  ver categorías, productos de Entrantes, detalle y presentaciones de Croquetas, crear un pedido
+  (201), verlo en el listado y modificar su cantidad (200). Errores comprobados: presentación no
+  activa (422 con mensaje), cantidad como texto (422), pedido de otra mesa (404) y `PATCH` vacío (422).
